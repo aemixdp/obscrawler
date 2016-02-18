@@ -1,0 +1,9 @@
+{
+  "ambientDependencies": {
+    "MediaStream": "github:DefinitelyTyped/DefinitelyTyped/webrtc/MediaStream.d.ts#9027703c0bd831319dcdf7f3169f7a468537f448",
+    "chrome": "github:DefinitelyTyped/DefinitelyTyped/chrome/chrome.d.ts#2757555ef006cb51475da1cb611b42e61a45cc60",
+    "es6-promise": "github:DefinitelyTyped/DefinitelyTyped/es6-promise/es6-promise.d.ts#830e8ebd9ef137d039d5c7ede24a421f08595f83",
+    "filesystem": "github:DefinitelyTyped/DefinitelyTyped/filesystem/filesystem.d.ts#8acb8a3f7bfef5469cae1c249beb9c44259e1d3d",
+    "filewriter": "github:DefinitelyTyped/DefinitelyTyped/filewriter/filewriter.d.ts#1d345f6c1471fab46b7eb54ebe90013f578c78ca"
+  }
+}
