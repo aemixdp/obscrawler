@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Obscrawler options</title>
+    <style>
+        body { padding-bottom: 10px; }
+        input { width: 100%; text-align: center; }
+        input[type="checkbox"] { margin: 5px; }
+        .table { display: table; width: 100%; border-spacing: 2px; }
+        .row { display: table-row; }
+        .cell { display: table-cell; text-align: center; vertical-align: middle; }
+        .delete:hover { cursor: pointer; color: red; }
+        #initial-urls .row:last-child .delete { display: none; }
+    </style>
+    <script type="text/html" id="row-template">
+        <div class="row">
+            <div class="cell">
+                <input class="url" type="text" placeholder="https://en.wikipedia.org">
+            </div>
+            <div class="cell">
+                <input type="checkbox">
+            </div>
+            <div class="cell"><span class="delete">&#x00D7;</span></div>
+        </div>
+    </script>
+</head>
+<body>
+    <div id="options" class="table">
+        <div class="row">
+            <div class="cell">Cut #anchors from URLs</div>
+            <div class="cell">
+                <input data-key="cut-anchors" type="checkbox">
+            </div>
+        </div>
+        <div class="row">
+            <div class="cell">Min timeout (sec)</div>
+            <div class="cell">
+                <input data-key="min-timeout" type="text">
+            </div>
+        </div>
+        <div class="row">
+            <div class="cell">Max timeout (sec)</div>
+            <div class="cell">
+                <input data-key="max-timeout" type="text">
+            </div>
+        </div>
+        <div class="row">
+            <div class="cell">Ignored extensions</div>
+            <div class="cell">
+                <input data-key="ignored-extensions" type="text">
+            </div>
+        </div>
+    </div>
+    <br>
+    <div id="initial-urls" class="table">
+        <div class="row">
+            <div class="cell">Initial URL</div>
+            <div class="cell">Restrict to domain</div>
+        </div>
+    </div>
+    <script src="options.js"></script>
+</body>
+</html>

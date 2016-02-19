@@ -10,6 +10,7 @@
     "files": [
         "background.ts",
         "content.ts",
+        "options.ts",
         "typings/browser.d.ts"
     ]
 }
