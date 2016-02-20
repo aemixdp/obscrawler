@@ -11,6 +11,7 @@
         "background.ts",
         "content.ts",
         "options.ts",
+        "defaults.ts",
         "typings/browser.d.ts"
     ]
 }

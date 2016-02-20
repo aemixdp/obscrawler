@@ -4,7 +4,10 @@
     "version": "1.0",
     "background": {
         "persistent": true,
-        "scripts": ["background.js"]
+        "scripts": [
+            "defaults.js",
+            "background.js"
+        ]
     },
     "content_scripts": [{
         "matches": ["<all_urls>"],

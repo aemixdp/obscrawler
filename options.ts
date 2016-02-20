@@ -94,12 +94,11 @@ UI.initialize();
     const elems = document.getElementById('options').querySelectorAll('input');
     for (let i = 0; i < elems.length; ++i) {
         const elem = elems.item(i) as HTMLInputElement;
+        const key = elem.dataset['key'];
         if (elem.type == 'text') {
-            DB.get(elem.dataset['key'],
-                (value) => elem.value = value || '');
+            DB.get(key, (value) => elem.value = value || DEFAULTS[key] || '');
         } else if (elem.type == 'checkbox') {
-            DB.get(elem.dataset['key'],
-                (checked) => elem.checked = checked || false);
+            DB.get(key, (checked) => elem.checked = checked || DEFAULTS[key] || false);
         }
     }
 })();
