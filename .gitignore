@@ -1,3 +1,4 @@
 .git/
 typings/
 output/*.js
+output/*/*.js

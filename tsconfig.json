@@ -8,13 +8,14 @@
         "sourceMap": false
     },
     "files": [
-        "chaotic-bag.ts",
-        "url-containers.ts",
-        "url-filters.ts",
+        "typings/browser.d.ts",
+        "src/chaotic-bag.ts",
+        "src/url-containers.ts",
+        "src/url-filters.ts",
+        "src/defaults.ts",
+        "src/options.ts",
+        "src/obscrawler.ts",
         "background.ts",
-        "content.ts",
-        "options.ts",
-        "defaults.ts",
-        "typings/browser.d.ts"
+        "content.ts"
     ]
 }

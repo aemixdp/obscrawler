@@ -5,10 +5,11 @@
     "background": {
         "persistent": true,
         "scripts": [
-            "defaults.js",
-            "chaotic-bag.js",
-            "url-containers.js",
-            "url-filters.js",
+            "src/defaults.js",
+            "src/chaotic-bag.js",
+            "src/url-containers.js",
+            "src/url-filters.js",
+            "src/obscrawler.js",
             "background.js"
         ]
     },
