@@ -1,69 +1,57 @@
 const WARMUP_TIMEOUT = 5000;
-const DUMMY_PAGE = "https://www.google.com.ua/";
-
-class ChaoticBag<T> {
-    constructor(private storage: Array<T> = []) {}
-    put(item: T): void {
-        if (this.storage.length == 0) {
-            this.storage.push(item);
-        } else {
-            const swapIndex = Math.floor(this.storage.length * Math.random());
-            const otherItem = this.storage[swapIndex];
-            this.storage[swapIndex] = item;
-            this.storage.push(otherItem);
-        }
-    }
-    get(): T {
-        return this.storage.length > 1
-            ? this.storage.pop()
-            : this.storage[0];
-    }
-}
-
-class UrlMap<V> {
-    private storage: Object;
-    constructor() {
-        this.storage = new Object(null);
-    }
-    get(url: string): V {
-        return this.storage[url];
-    }
-    set(url: string, value: V): void {
-        this.storage[url] = value;
-    }
-}
+const CHANGE_URL_TIMEOUT = 1000;
+const DUMMY_PAGE = 'about:blank';
 
 class Obscrawler {
-    private workerHandle: number;
-    private minTimeout: number;
-    private maxTimeout: number;
-    private tabIds: Array<number>;
-    private tabDiscoveredUrls: Array<ChaoticBag<string>>;
-    private initialUrls: Array<string>;
-    private visitedUrls: UrlMap<boolean>;
-    constructor (options: {
+    private options: {
+        cutAnchors: boolean,
         minTimeout: number,
         maxTimeout: number,
-        initialUrls: Array<string>
-    }) {
-        this.minTimeout = options.minTimeout;
-        this.maxTimeout = options.maxTimeout;
-        this.tabIds = [];
-        this.tabDiscoveredUrls = [];
-        this.initialUrls = options.initialUrls;
-        this.visitedUrls = new UrlMap<boolean>();
+        ignoredExtensions: string[]
+    };
+    private workerHandle: number;
+    private tabIds: number[];
+    private tabAvailableUrls: ChaoticBag<string>[];
+    private tabUrlKeys: string[];
+    private initialUrls: string[];
+    private knownUrls: UrlSet;
+    private urlFilter: UrlFilter;
+    constructor(options: { urlFilter: UrlFilter }) {
+        this.urlFilter = options.urlFilter;
     }
     public start() {
-        for (const url of this.initialUrls) {
-            chrome.tabs.create({ url: DUMMY_PAGE }, (tab) => {
-                const bag = new ChaoticBag<string>();
-                bag.put(url);
-                this.visitedUrls.set(url, true);
-                this.tabIds.push(tab.id);
-                this.tabDiscoveredUrls.push(bag);
+        this.tabIds = [];
+        this.tabAvailableUrls = [];
+        this.tabUrlKeys = [];
+        this.knownUrls = new UrlSet();
+        chrome.storage.sync.get(DEFAULTS, (options: typeof DEFAULTS) =>
+        chrome.storage.sync.get('url-keys', (urlKeysResult) => {
+            if (Object.keys(urlKeysResult).length == 0) return;
+            chrome.storage.sync.get(urlKeysResult['url-keys'], (urlsResult) => {
+                this.options = {
+                    cutAnchors: options['cut-anchors'],
+                    minTimeout: options['min-timeout-seconds'] * 1000,
+                    maxTimeout: options['max-timeout-seconds'] * 1000,
+                    ignoredExtensions: options['ignored-extensions'].split(' ')
+                };
+                const urlKeys = urlKeysResult['url-keys'];
+                this.initialUrls = urlKeys
+                    .map(key => urlsResult[key])
+                    .filter(url => url);
+                for (const i in this.initialUrls) {
+                    chrome.tabs.create({ url: DUMMY_PAGE }, (tab) => {
+                        const bag = new ChaoticBag<string>();
+                        const url = this.initialUrls[i];
+                        bag.put(url);
+                        this.knownUrls.add(url);
+                        this.tabIds.push(tab.id);
+                        this.tabAvailableUrls.push(bag);
+                        this.tabUrlKeys.push(urlKeys[i]);
+                    });
+                }
+                this.workerHandle = setTimeout(() => this.crawl(), WARMUP_TIMEOUT);
             });
-        }
-        this.workerHandle = setTimeout(() => this.crawl(), WARMUP_TIMEOUT);
+        }));
     }
     public stop() {
         clearTimeout(this.workerHandle);
@@ -83,30 +71,53 @@ class Obscrawler {
         if (this.tabIds.length == 0) return;
         const tabIndex = Math.floor(this.tabIds.length * Math.random());
         const tabId = this.tabIds[tabIndex];
-        const discoveredUrls = this.tabDiscoveredUrls[tabIndex];
-        const newUrl = discoveredUrls.get();
+        const availableUrls = this.tabAvailableUrls[tabIndex];
+        const newUrl = availableUrls.get();
+        console.log(newUrl);
         chrome.tabs.update(tabId, { url: newUrl }, () => {
-            chrome.tabs.sendMessage(tabId, { action: 'getUrls' }, (response) => {
-                for (const url of response) {
-                    if (!this.visitedUrls.get(url)) {
-                        discoveredUrls.put(url);
-                        this.visitedUrls.set(url, true);
-                    }
-                }
-            });
+            if (chrome.runtime.lastError)
+                return console.error(chrome.runtime.lastError.message);
+            setTimeout(() => {
+                chrome.tabs.sendMessage(tabId, { action: 'getUrls' }, (response) => {
+                    if (chrome.runtime.lastError)
+                        return console.error(chrome.runtime.lastError.message);
+                    const restrictToDomainKey = this.tabUrlKeys[tabIndex] + '-restrict-to-domain'
+                    chrome.storage.sync.get(restrictToDomainKey, (restrictToDomainResult) => {
+                        const restrictToDomain = restrictToDomainResult[restrictToDomainKey];
+                        for (const url of response) {
+                            const filteredUrl = this.urlFilter({
+                                url,
+                                domain: restrictToDomain ? this.initialUrls[tabIndex] : null,
+                                cutAnchors: this.options.cutAnchors,
+                                ignoredExtensions: this.options.ignoredExtensions,
+                                knownUrls: this.knownUrls
+                            });
+                            if (filteredUrl) {
+                                availableUrls.put(filteredUrl);
+                                this.knownUrls.add(filteredUrl);
+                            }
+                        }
+                    });
+                });
+            }, CHANGE_URL_TIMEOUT);
         });
-        const timeoutDiff = this.maxTimeout - this.minTimeout;
-        const timeout = this.minTimeout + timeoutDiff * Math.random();
+        const timeoutDiff = this.options.maxTimeout - this.options.minTimeout;
+        const timeout = this.options.minTimeout + timeoutDiff * Math.random();
         this.workerHandle = setTimeout(() => this.crawl(), timeout);
     }
 }
 
 const obscrawler = new Obscrawler({
-    minTimeout: 10000,
-    maxTimeout: 25000,
-    initialUrls: ["http://dou.ua/", "https://2ch.hk/"]
+    urlFilter: UrlFilters.chain(
+        UrlFilters.domainUrlFilter,
+        UrlFilters.anchorUrlFilter,
+        UrlFilters.extensionUrlFilter,
+        UrlFilters.knownUrlFilter
+    )
 });
 
-chrome.browserAction.onClicked.addListener(() => {
-    obscrawler.toggle();
+chrome.browserAction.onClicked.addListener(() => obscrawler.toggle());
+
+chrome.runtime.onMessage.addListener((msg) => {
+    console.log(msg);
 });

@@ -8,6 +8,9 @@
         "sourceMap": false
     },
     "files": [
+        "chaotic-bag.ts",
+        "url-containers.ts",
+        "url-filters.ts",
         "background.ts",
         "content.ts",
         "options.ts",
