@@ -1,6 +1,6 @@
 const WARMUP_TIMEOUT = 5000;
 const CHANGE_URL_TIMEOUT = 1000;
-const DUMMY_PAGE = 'about:blank';
+const DUMMY_PAGE = 'https://www.google.com.ua/';
 
 class Obscrawler {
     private options: {
@@ -75,32 +75,35 @@ class Obscrawler {
         const availableUrls = this.tabAvailableUrls[tabIndex];
         const newUrl = availableUrls.get();
         console.log(newUrl);
-        chrome.tabs.update(tabId, { url: newUrl.raw }, () => {
-            if (chrome.runtime.lastError)
-                return console.error(chrome.runtime.lastError.message);
-            setTimeout(() => {
-                chrome.tabs.sendMessage(tabId, { action: 'getUrls' }, (response) => {
-                    if (chrome.runtime.lastError)
-                        return console.error(chrome.runtime.lastError.message);
-                    const restrictToDomainKey = this.tabUrlKeys[tabIndex] + '-restrict-to-domain'
-                    chrome.storage.sync.get(restrictToDomainKey, (restrictToDomainResult) => {
-                        const restrictToDomain = restrictToDomainResult[restrictToDomainKey];
-                        for (const rawUrl of response) {
-                            const filteredUrl = this.urlFilter({
-                                url: Url.parse(rawUrl),
-                                domain: restrictToDomain ? this.initialUrls[tabIndex].domain : null,
-                                cutAnchors: this.options.cutAnchors,
-                                ignoredExtensions: this.options.ignoredExtensions,
-                                knownUrls: this.knownUrls
-                            });
-                            if (filteredUrl) {
-                                availableUrls.put(filteredUrl);
-                                this.knownUrls.add(filteredUrl);
+        chrome.tabs.sendMessage(tabId, { action: 'visitUrl', url: newUrl.raw }, () => {
+            const withTabUrlChanged = chrome.runtime.lastError
+                ? (callback) => chrome.tabs.update(tabId, { url: newUrl.raw }, callback)
+                : (callback) => callback();
+            withTabUrlChanged(() => {
+                setTimeout(() => {
+                    chrome.tabs.sendMessage(tabId, { action: 'getUrls' }, (response) => {
+                        if (chrome.runtime.lastError)
+                            return console.error(chrome.runtime.lastError.message);
+                        const restrictToDomainKey = this.tabUrlKeys[tabIndex] + '-restrict-to-domain'
+                        chrome.storage.sync.get(restrictToDomainKey, (restrictToDomainResult) => {
+                            const restrictToDomain = restrictToDomainResult[restrictToDomainKey];
+                            for (const rawUrl of response) {
+                                const filteredUrl = this.urlFilter({
+                                    url: Url.parse(rawUrl),
+                                    domain: restrictToDomain ? this.initialUrls[tabIndex].domain : null,
+                                    cutAnchors: this.options.cutAnchors,
+                                    ignoredExtensions: this.options.ignoredExtensions,
+                                    knownUrls: this.knownUrls
+                                });
+                                if (filteredUrl) {
+                                    availableUrls.put(filteredUrl);
+                                    this.knownUrls.add(filteredUrl);
+                                }
                             }
-                        }
+                        });
                     });
-                });
-            }, CHANGE_URL_TIMEOUT);
+                }, CHANGE_URL_TIMEOUT);
+            });
         });
         const timeoutDiff = this.options.maxTimeout - this.options.minTimeout;
         const timeout = this.options.minTimeout + timeoutDiff * Math.random();
