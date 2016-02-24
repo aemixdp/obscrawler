@@ -11,9 +11,9 @@ class Obscrawler {
     };
     private workerHandle: number;
     private tabIds: number[];
-    private tabAvailableUrls: ChaoticBag<string>[];
+    private tabAvailableUrls: ChaoticBag<Url>[];
     private tabUrlKeys: string[];
-    private initialUrls: string[];
+    private initialUrls: Url[];
     private knownUrls: UrlSet;
     private urlFilter: UrlFilter;
     constructor(options: { urlFilter: UrlFilter }) {
@@ -37,10 +37,11 @@ class Obscrawler {
                 const urlKeys = urlKeysResult['url-keys'];
                 this.initialUrls = urlKeys
                     .map(key => urlsResult[key])
-                    .filter(url => url);
+                    .filter(url => url)
+                    .map(Url.parse);
                 for (const i in this.initialUrls) {
                     chrome.tabs.create({ url: DUMMY_PAGE }, (tab) => {
-                        const bag = new ChaoticBag<string>();
+                        const bag = new ChaoticBag<Url>();
                         const url = this.initialUrls[i];
                         bag.put(url);
                         this.knownUrls.add(url);
@@ -74,7 +75,7 @@ class Obscrawler {
         const availableUrls = this.tabAvailableUrls[tabIndex];
         const newUrl = availableUrls.get();
         console.log(newUrl);
-        chrome.tabs.update(tabId, { url: newUrl }, () => {
+        chrome.tabs.update(tabId, { url: newUrl.raw }, () => {
             if (chrome.runtime.lastError)
                 return console.error(chrome.runtime.lastError.message);
             setTimeout(() => {
@@ -84,10 +85,10 @@ class Obscrawler {
                     const restrictToDomainKey = this.tabUrlKeys[tabIndex] + '-restrict-to-domain'
                     chrome.storage.sync.get(restrictToDomainKey, (restrictToDomainResult) => {
                         const restrictToDomain = restrictToDomainResult[restrictToDomainKey];
-                        for (const url of response) {
+                        for (const rawUrl of response) {
                             const filteredUrl = this.urlFilter({
-                                url,
-                                domain: restrictToDomain ? this.initialUrls[tabIndex] : null,
+                                url: Url.parse(rawUrl),
+                                domain: restrictToDomain ? this.initialUrls[tabIndex].domain : null,
                                 cutAnchors: this.options.cutAnchors,
                                 ignoredExtensions: this.options.ignoredExtensions,
                                 knownUrls: this.knownUrls

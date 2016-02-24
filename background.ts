@@ -8,7 +8,3 @@ const obscrawler = new Obscrawler({
 });
 
 chrome.browserAction.onClicked.addListener(() => obscrawler.toggle());
-
-chrome.runtime.onMessage.addListener((msg) => {
-    console.log(msg);
-});

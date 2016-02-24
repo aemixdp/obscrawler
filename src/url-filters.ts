@@ -1,10 +1,10 @@
 type UrlFilter = (args: {
-    url: string,
+    url: Url,
     domain: string,
     cutAnchors: boolean,
     ignoredExtensions: string[],
     knownUrls: UrlSet
-}) => string;
+}) => Url;
 
 namespace UrlFilters {
     export const knownUrlFilter: UrlFilter = ({url, knownUrls}) =>
@@ -15,7 +15,7 @@ namespace UrlFilters {
             .map(s => s.trim()).filter(s => s.length > 0)
             .map(s => '.' + s);
         for (const ext of extensions) {
-            if (url.lastIndexOf(ext) == url.length - ext.length) {
+            if (url.raw.lastIndexOf(ext) == url.raw.length - ext.length) {
                 return null;
             }
         }
@@ -23,19 +23,17 @@ namespace UrlFilters {
     };
     export const anchorUrlFilter: UrlFilter = ({url}) => {
         if (!url) return null;
-        let i = url.length - 1;
+        let i = url.raw.length - 1;
         while (i > 0) {
-            if (url.charAt(i) == '#')
+            if (url.raw.charAt(i) == '#')
                 break;
             i -= 1;
         }
-        return i > 0 ? url.substr(0, i) : url;
+        return i > 0 ? Url.parse(url.raw.substr(0, i)) : url;
     };
     export const domainUrlFilter: UrlFilter = ({url, domain}) => {
         if (!domain) return url;
-        return url.indexOf(domain) == 0
-            ? url
-            : null;
+        return url.domain == domain ? url : null;
     };
     export function chain(...filters: Array<UrlFilter>): UrlFilter {
         for (let i = 1; i < filters.length; ++i) {

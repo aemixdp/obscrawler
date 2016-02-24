@@ -3,11 +3,11 @@ class UrlMap<V> {
     constructor() {
         this.storage = new Object(null);
     }
-    get(url: string): V {
-        return this.storage[url];
+    get(url: Url): V {
+        return this.storage[url && url.raw];
     }
-    set(url: string, value: V): void {
-        this.storage[url] = value;
+    set(url: Url, value: V): void {
+        this.storage[url.raw] = value;
     }
 }
 
@@ -16,10 +16,10 @@ class UrlSet {
     constructor() {
         this.storage = new UrlMap<boolean>();
     }
-    add(url: string): void {
+    add(url: Url): void {
         this.storage.set(url, true);
     }
-    contains(url: string): boolean {
+    contains(url: Url): boolean {
         return this.storage.get(url);
     }
 }

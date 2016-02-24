@@ -10,6 +10,7 @@
     "files": [
         "typings/browser.d.ts",
         "src/chaotic-bag.ts",
+        "src/url.ts",
         "src/url-containers.ts",
         "src/url-filters.ts",
         "src/defaults.ts",
